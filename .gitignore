@@ -1,0 +1,84 @@
+############################################
+# NODE / JAVASCRIPT
+############################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+############################################
+# ENVIRONMENT VARIABLES & SECRETS
+############################################
+.env
+.env.local
+.env.development
+.env.production
+
+# Firebase Admin SDK keys (CRITICAL)
+server/firebaseAdminKey.json
+server/*.pem
+server/*.key
+server/*.crt
+
+############################################
+# BUILD OUTPUTS
+############################################
+
+# Vite / React
+client/dist/
+client/.vite/
+
+# Node / Server builds
+server/dist/
+server/build/
+
+############################################
+# CACHE & TEMP FILES
+############################################
+.cache/
+.tmp/
+.temp/
+
+############################################
+# LOG FILES
+############################################
+logs/
+*.log
+
+############################################
+# OS GENERATED FILES
+############################################
+.DS_Store
+Thumbs.db
+desktop.ini
+
+############################################
+# EDITOR / IDE FILES
+############################################
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+.idea/
+*.swp
+*.swo
+
+############################################
+# TEST COVERAGE
+############################################
+coverage/
+.nyc_output/
+
+############################################
+# MISC
+############################################
+*.tgz
+*.bak
+*.old
+
+############################################
+# OPTIONAL: IGNORE CLIENT ENV IF USED
+############################################
+client/.env
+client/.env.local
