@@ -1,1 +1,10 @@
 @import "tailwindcss";
+/* This ensures the Google address suggestions are visible above your modal */
+.pac-container {
+    z-index: 9999 !important;
+    border-radius: 12px;
+    margin-top: 5px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: none;
+    font-family: 'Inter', sans-serif;
+}
