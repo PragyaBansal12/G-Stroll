@@ -1,9 +1,9 @@
 import { useState } from "react"
-import { createUserWithEmailAndPassword } from "firebase/auth"
+import { signInWithEmailAndPassword } from "firebase/auth"
 import { auth } from "../firebase"
 import { useNavigate } from "react-router-dom"
 
-const Signup = () => {
+const Login = () => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -11,13 +11,13 @@ const Signup = () => {
 
   const navigate = useNavigate()
 
-  const handleSignup = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password)
+      await signInWithEmailAndPassword(auth, email, password)
       navigate("/dashboard")
     } catch (err) {
       setError(err.message)
@@ -27,8 +27,8 @@ const Signup = () => {
   }
 
   return (
-    <form onSubmit={handleSignup}>
-      <h2>Signup</h2>
+    <form onSubmit={handleLogin}>
+      <h2>Login</h2>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
@@ -49,10 +49,10 @@ const Signup = () => {
       />
 
       <button disabled={loading}>
-        {loading ? "Creating..." : "Create Account"}
+        {loading ? "Logging in..." : "Login"}
       </button>
     </form>
   )
 }
 
-export default Signup
+export default Login
