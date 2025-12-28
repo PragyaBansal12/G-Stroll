@@ -1,4 +1,15 @@
 @import "tailwindcss";
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html, #root {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden; /* Prevents horizontal scrolling */
+}
 /* This ensures the Google address suggestions are visible above your modal */
 .pac-container {
     z-index: 9999 !important;

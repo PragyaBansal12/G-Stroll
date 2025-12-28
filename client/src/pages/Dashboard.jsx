@@ -1,106 +1,116 @@
-import { useAuth } from "../context/AuthContext"
-import { signOut } from "firebase/auth"
-import { auth } from "../firebase"
-import { useNavigate } from "react-router-dom"
-import { useState, useEffect } from "react"
-import DestinationModal from "./DestinationModal"
+import React, { useState, useEffect } from 'react';
+import { useAuth } from "../context/AuthContext";
+import { signOut } from "firebase/auth";
+import { auth, db } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import DestinationModal from "../components/DestinationModal";
+import DashboardStats from "../components/DashboardStats";
 
 const Dashboard = () => {
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [greeting, setGreeting] = useState("")
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [greeting, setGreeting] = useState("Hello");
 
-  // 1. Dynamic Greeting Logic
   useEffect(() => {
-    const hour = new Date().getHours()
-    if (hour < 12) setGreeting("Good morning")
-    else if (hour < 17) setGreeting("Good afternoon")
-    else setGreeting("Good evening")
-  }, [])
+    const fetchProfile = async () => {
+      // Safety: ensure user exists before calling Firestore
+      if (!user?.uid) return;
+      
+      try {
+        const docRef = doc(db, "profiles", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setProfile(docSnap.data());
+        }
+      } catch (error) {
+        console.error("Dashboard profile fetch error:", error);
+      }
+    };
 
-  const displayName = user?.email.split('@')[0] // Fallback if name isn't in DB
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting("Good morning");
+    else if (hour < 17) setGreeting("Good afternoon");
+    else setGreeting("Good evening");
+
+    fetchProfile();
+  }, [user?.uid]);
+
+  const displayName = user?.email ? user.email.split('@')[0] : "User";
 
   return (
-    <div style={styles.dashboardContainer}>
-      {/* Header */}
-      <div style={styles.header}>
-        <span style={styles.logo}>Parthy</span>
-        <button onClick={() => signOut(auth)} style={styles.logoutBtn}>Logout</button>
-      </div>
+    <div style={styles.container}>
+      <div style={styles.contentWrapper}>
+        <div style={styles.header}>
+          <span style={styles.logo}>Parthy</span>
+          <button onClick={() => signOut(auth)} style={styles.logoutBtn}>Logout</button>
+        </div>
 
-      {/* 2. Greeting Section */}
-      <section style={styles.welcomeSection}>
-        <h1 style={styles.greetingText}>
-          {greeting}, <span style={{ textTransform: 'capitalize' }}>{displayName}</span> 👋
+        <h1 style={styles.greeting}>
+          {greeting}, <span style={{ textTransform: 'capitalize' }}>{displayName}</span>! 👋
         </h1>
-        <p style={styles.subText}>Ready to find an accessible route today?</p>
-      </section>
+        <p style={styles.subText}>Where are we heading safely today?</p>
 
-      {/* 3. Accessibility Profile Card */}
-      <div style={styles.profileCard}>
-        <h3 style={styles.cardTitle}>Your Profile</h3>
-        <div style={styles.infoRow}>
-          <span>♿ Mobility Type:</span> <strong>Manual Wheelchair</strong>
+        <DashboardStats />
+
+        <div style={styles.profileCard}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+             <h3 style={{margin: 0}}>Your Profile</h3>
+             <button 
+               onClick={() => navigate('/profile')} 
+               style={styles.editBtn}
+             >
+               Edit
+             </button>
+          </div>
+          <div style={styles.info}>
+             <p style={{marginBottom: '8px'}}>♿ {profile?.mobilityType || 'Manual Wheelchair'}</p>
+             <p>📉 Max Slope: {profile?.maxSlope || '5'}°</p>
+          </div>
         </div>
-        <div style={styles.infoRow}>
-          <span>📉 Max Slope:</span> <strong>5° (Easy)</strong>
-        </div>
-        <div style={styles.infoRow}>
-          <span>🔊 Voice Navigation:</span> <strong>ON</strong>
-        </div>
-        <button style={styles.editBtn}>Edit Profile</button>
+
+        <button style={styles.mainCta} onClick={() => setIsModalOpen(true)}>
+          🚀 Plan Accessible Route
+        </button>
+
+        {isModalOpen && (
+          <DestinationModal 
+            onClose={() => setIsModalOpen(false)} 
+            mobilityType={profile?.mobilityType || "Manual Wheelchair"} 
+          />
+        )}
       </div>
-
-      {/* 4. Primary CTA Button (BIG) */}
-      <button 
-        style={styles.mainCta} 
-        onClick={() => setIsModalOpen(true)}
-      >
-        Plan Accessible Route
-      </button>
-
-      {/* 5. Destination Modal */}
-      {isModalOpen && (
-        <DestinationModal 
-          onClose={() => setIsModalOpen(false)} 
-          mobilityType="Manual Wheelchair" 
-        />
-      )}
     </div>
-  )
-}
+  );
+};
 
 const styles = {
-  dashboardContainer: { padding: '25px', maxWidth: '500px', margin: '0 auto', fontFamily: 'Inter, system-ui' },
-  header: { display: 'flex', justifyContent: 'space-between', marginBottom: '30px' },
-  logo: { fontWeight: 'bold', fontSize: '22px', color: '#4285F4' },
-  greetingText: { fontSize: '28px', marginBottom: '8px', color: '#202124' },
-  subText: { color: '#5f6368', fontSize: '16px' },
-  profileCard: { 
-    backgroundColor: '#f8f9fa', 
-    padding: '20px', 
-    borderRadius: '16px', 
-    border: '1px solid #e0e0e0',
-    marginBottom: '25px',
-    marginTop: '25px'
+  container: { 
+    width: '100vw', 
+    minHeight: '100vh', 
+    backgroundColor: '#fcfcfc', 
+    display: 'flex',
+    flexDirection: 'column',
+    overflowX: 'hidden'
   },
-  cardTitle: { marginTop: 0, fontSize: '18px' },
-  infoRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '14px' },
-  editBtn: { background: 'none', border: 'none', color: '#4285F4', fontWeight: '600', cursor: 'pointer', padding: 0, marginTop: '10px' },
-  mainCta: { 
-    width: '100%', 
-    padding: '18px', 
-    backgroundColor: '#4285F4', 
-    color: 'white', 
-    border: 'none', 
-    borderRadius: '12px', 
-    fontSize: '18px', 
-    fontWeight: 'bold', 
-    cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(66, 133, 244, 0.3)'
+  contentWrapper: {
+    padding: '25px', 
+    maxWidth: '600px', 
+    width: '100%',
+    margin: '0 auto', 
+    flex: 1
   },
-  logoutBtn: { border: 'none', background: '#f1f3f4', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }
-}
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
+  logo: { fontWeight: '900', fontSize: '24px', color: '#4285F4' },
+  greeting: { fontSize: '32px', marginBottom: '5px', fontWeight: '800', color: '#1a1a1a' },
+  subText: { color: '#666', marginBottom: '25px' },
+  profileCard: { backgroundColor: '#fff', padding: '20px', borderRadius: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginBottom: '25px', border: '1px solid #f0f0f0' },
+  editBtn: { background: '#E8F0FE', color: '#4285F4', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
+  info: { marginTop: '15px', fontSize: '16px', color: '#444' },
+  mainCta: { width: '100%', padding: '20px', backgroundColor: '#4285F4', color: 'white', border: 'none', borderRadius: '15px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(66, 133, 244, 0.3)' },
+  logoutBtn: { border: 'none', background: 'none', color: '#888', cursor: 'pointer', fontSize: '14px' }
+};
 
-export default Dashboard
+export default Dashboard;
