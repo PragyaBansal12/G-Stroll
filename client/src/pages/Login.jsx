@@ -18,6 +18,7 @@ const Login = () => {
     <form onSubmit={handleLogin}>
       <h2>Login</h2>
 
+
       <input
         required
         placeholder="Email"
