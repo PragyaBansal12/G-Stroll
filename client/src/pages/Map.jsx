@@ -4,17 +4,20 @@ import { useNavigate } from "react-router-dom"
 const MapPage = () => {
   const mapRef = useRef(null)
   const mapInstance = useRef(null)
+
   const inputRef = useRef(null)
   const userMarkerRef = useRef(null)
   const destMarkerRef = useRef(null)
   const directionsRendererRef = useRef(null)
+  const watchIdRef = useRef(null)
 
   const [userLocation, setUserLocation] = useState(null)
   const [routeInfo, setRouteInfo] = useState(null)
+  const [isNavigating, setIsNavigating] = useState(false)
 
   const navigate = useNavigate()
 
-  // INIT MAP + USER LOCATION
+  /* ---------------- INIT MAP ---------------- */
   useEffect(() => {
     if (!window.google || mapInstance.current) return
 
@@ -41,6 +44,7 @@ const MapPage = () => {
         setupAutocomplete()
       },
       () => {
+        // fallback location (Delhi)
         const fallback = { lat: 28.6139, lng: 77.209 }
         setUserLocation(fallback)
 
@@ -49,13 +53,21 @@ const MapPage = () => {
           zoom: 13,
         })
 
+        userMarkerRef.current = new window.google.maps.Marker({
+          position: fallback,
+          map: mapInstance.current,
+          title: "You are here",
+        })
+
         setupAutocomplete()
       }
     )
   }, [])
 
-  // AUTOCOMPLETE SETUP
+  /* ---------------- AUTOCOMPLETE ---------------- */
   const setupAutocomplete = () => {
+    if (!inputRef.current) return
+
     const autocomplete = new window.google.maps.places.Autocomplete(
       inputRef.current,
       { fields: ["geometry", "name"] }
@@ -70,8 +82,6 @@ const MapPage = () => {
         lng: place.geometry.location.lng(),
       }
 
-      drawRoute(destination)
-
       if (destMarkerRef.current) {
         destMarkerRef.current.setMap(null)
       }
@@ -81,10 +91,12 @@ const MapPage = () => {
         map: mapInstance.current,
         title: place.name,
       })
+
+      drawRoute(destination)
     })
   }
 
-  // DRAW ROUTE
+  /* ---------------- DRAW ROUTE ---------------- */
   const drawRoute = (destination) => {
     if (!userLocation) return
 
@@ -124,6 +136,50 @@ const MapPage = () => {
     )
   }
 
+  /* ---------------- START NAVIGATION ---------------- */
+  const startNavigation = () => {
+    if (!userMarkerRef.current) return
+
+    setIsNavigating(true)
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const updatedLoc = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }
+
+        userMarkerRef.current.setPosition(updatedLoc)
+        mapInstance.current.panTo(updatedLoc)
+      },
+      (err) => console.error("GPS error:", err),
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000,
+      }
+    )
+  }
+
+  /* ---------------- STOP NAVIGATION ---------------- */
+  const stopNavigation = () => {
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+    setIsNavigating(false)
+  }
+
+  /* ---------------- CLEANUP ---------------- */
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+      }
+    }
+  }, [])
+
+  /* ---------------- UI ---------------- */
   return (
     <div className="relative h-screen w-screen">
 
@@ -137,21 +193,40 @@ const MapPage = () => {
       </div>
 
       {/* Route Info */}
-      {routeInfo && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 bg-white px-4 py-2 rounded-lg shadow">
+      {routeInfo && !isNavigating && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 bg-white px-4 py-2 rounded-lg shadow">
           <p className="text-sm font-medium">
             Distance: {routeInfo.distance}
           </p>
           <p className="text-sm text-gray-600">
             Time: {routeInfo.duration}
           </p>
+          <button
+            onClick={startNavigation}
+            className="mt-2 w-full bg-blue-600 text-white py-1 rounded"
+          >
+            Start Navigation
+          </button>
+        </div>
+      )}
+
+      {/* Navigation Active */}
+      {isNavigating && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow">
+          Navigation Started
+          <button
+            onClick={stopNavigation}
+            className="ml-4 bg-white text-green-700 px-2 py-1 rounded"
+          >
+            Stop
+          </button>
         </div>
       )}
 
       {/* Map */}
       <div ref={mapRef} className="h-screen w-full" />
 
-      {/* Back */}
+      {/* Back Button */}
       <button
         onClick={() => navigate("/dashboard")}
         className="absolute bottom-4 left-4 z-10 bg-white px-4 py-2 rounded shadow"
